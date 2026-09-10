@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DeepShield AI | Deepfake Detection</title>
+
+    <style>
+
+        /* =========================
+           GENERAL
+        ========================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #070b17;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        :root {
+            --background: #070b17;
+            --card: #10182b;
+            --card-light: #151f36;
+            --text: #f2f6ff;
+            --muted: #a8b6d2;
+            --blue: #58a6ff;
+            --purple: #a674ff;
+            --green: #4bd296;
+            --red: #ff5f70;
+            --border: #263553;
+        }
+        .container {
+            width: 90%;
+            max-width: 1150px;
+            margin: auto;
+        }
+
+        /* =========================
+           NAVBAR
+        ========================= */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(7, 11, 23, 0.95);
+            border-bottom: 1px solid var(--border);
+        }
+        .navbar {
+            height: 75px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .logo img {
+            width: 250px;
+            height: 250px;
+            object-fit: contain;
+        }
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .nav-links a:hover {
+            color: var(--blue);
+        }
+
+        /* =========================
+           HOME
+        ========================= */
+        #home {
+            min-height: 700px;
+            display: flex;
+            align-items: center;
+            padding: 80px 0;
+        }
+        .home-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            color: var(--blue);
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .home-text h1 {
+            font-size: 60px;
+            line-height: 1.05;
+            margin-bottom: 20px;
+        }
+        .gradient {
+            background: linear-gradient(
+                90deg,
+                var(--blue),
+                var(--purple)
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .home-text p {
+            color: var(--muted);
+            font-size: 17px;
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            border: none;
+            padding: 13px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            color: #ffffff;
+            background: linear-gradient(
+                90deg,
+                #347fdb,
+                #8b55df
+            );
+        }
+        .btn-secondary {
+            color: white;
+            background: transparent;
+            border: 1px solid var(--border);
+        }
+
+        /* =========================
+           UPLOAD CARD
+        ========================= */
+        .upload-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .upload-card h2 {
+            margin-bottom: 8px;
+        }
+        .upload-description {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        .upload-area {
+            min-height: 300px;
+            border: 2px dashed #315078;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .upload-area:hover {
+            border-color: var(--blue);
+            background: rgba(88, 166, 255, 0.05);
+        }
+        .upload-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .upload-area h3 {
+            margin-bottom: 8px;
+        }
+        .upload-area p {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-name {
+            color: var(--blue);
+            font-size: 12px;
+            margin-top: 15px;
+            word-break: break-word;
+        }
+        .analyze-button {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        /* =========================
+           HOW IT WORKS
+        ========================= */
+        #how-it-works {
+            padding: 80px 0;
+        }
+        .section-title {
+            text-align: center;
+            margin-bottom: 45px;
+        }
+        .section-title h2 {
+            font-size: 38px;
+            margin-bottom: 10px;
+        }
+        .section-title p {
+            color: var(--muted);
+        }
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .step {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 25px;
+        }
+        .step-number {
+            color: var(--blue);
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .step h3 {
+            margin-bottom: 8px;
+        }
+        .step p {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        /* =========================
+           RESULT SECTION
+        ========================= */
+        #result {
+            padding: 90px 0;
+            background: #091020;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .result-box {
+            max-width: 950px;
+            margin: auto;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+        }
+        .result-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        .result-empty-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid #263553;
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: auto auto 20px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .result-content {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 35px;
+            align-items: center;
+        }
+        .preview {
+            min-height: 330px;
+            background: #050a13;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .preview img,
+        .preview video {
+            max-width: 100%;
+            max-height: 330px;
+        }
+        .result-label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .prediction {
+            font-size: 55px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .real {
+            color: var(--green);
+        }
+        .fake {
+            color: var(--red);
+        }
+        .confidence-title {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .progress {
+            width: 100%;
+            height: 12px;
+            background: #263553;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                var(--blue),
+                var(--purple)
+            );
+            transition: width 1s;
+        }
+        .result-message {
+            color: var(--muted);
+            font-size: 14px;
+            margin: 20px 0;
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+        footer {
+            padding: 30px 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+
+<body>
+
+
+<!-- =========================
+     NAVIGATION
+========================= -->
+
+<nav>
+    <div class="container navbar">
+        <div class="logo">
+            <!-- DEEPSHIELD LOGO -->
+            <img src="assets/logo_deepshield_ai.png"
+                 alt="DeepShield AI Logo">
+            <!--<span>DeepShield AI</span>-->
+        </div>
+        <div class="nav-links">
+            <a href="#home">Home</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#result">Result</a>
+        </div>
+    </div>
+</nav>
+
+<!-- =========================
+     HOME SECTION
+========================= -->
+
+<section id="home">
+    <div class="container home-content">
+	
+        <!-- LEFT SIDE -->
+        <div class="home-text">
+            <span class="badge">
+                AI-POWERED DEEPFAKE DETECTION
+            </span>
+            <h1>
+                Detect
+                <span class="gradient">
+                    Deepfakes
+                </span>
+                with confidence.
+            </h1>
+            <p>
+                DeepShield AI helps identify whether an image or video is likely real or fake using an AI-based deepfake detection system.
+            </p>
+            <div class="buttons">
+                <a href="#scanner"
+                   class="btn btn-primary">
+                    Start Detection
+                </a>
+                <a href="#how-it-works"
+                   class="btn btn-secondary">
+                    How It Works
+                </a>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE - UPLOAD -->
+        <div class="upload-card" id="scanner">
+            <h2>
+                Check Your Media
+            </h2>
+            <p class="upload-description">
+				Upload an image or video to analyze its authenticity.
+            </p>
+            <label class="upload-area" for="mediaInput" id="uploadArea">
+                <div class="upload-icon">
+                    ↑
+                </div>
+                <h3>
+                    Upload Image or Video
+                </h3>
+                <p>
+                    Drag and drop your file here or choose a file
+                </p>
+                <span class="btn btn-primary">
+                    Choose File
+                </span>
+                <div class="file-name" id="fileName">
+                    No file selected
+                </div>
+            </label>
+
+            <input type="file" id="mediaInput" accept="image/*,video/*">
+
+            <button class="btn btn-primary analyze-button" id="analyzeButton">
+                Analyze Media
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- =========================
+     HOW IT WORKS
+========================= -->
+
+<section id="how-it-works">
+    <div class="container">
+        <div class="section-title">
+            <h2>
+                How It Works
+            </h2>
+            <p>
+                A simple process for checking media authenticity.
+            </p>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">
+                    STEP 01
+                </div>
+                <h3>
+                    Upload Media
+                </h3>
+                <p>
+                    Select an image or video from your device.
+                </p>
+            </div>
+            <div class="step">
+                <div class="step-number">
+                    STEP 02
+                </div>
+                <h3>
+                    AI Analysis
+                </h3>
+                <p>
+                    The backend processes the media using the trained EfficientNetB0 model.
+                </p>
+            </div>
+            <div class="step">
+                <div class="step-number">
+                    STEP 03
+                </div>
+                <h3>
+                    View Result
+                </h3>
+                <p>
+                    The system displays a Real or Fake prediction with a confidence score.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================
+     RESULT SECTION
+========================= -->
+
+<section id="result">
+    <div class="container">
+        <div class="section-title">
+            <h2>
+                Detection Result
+            </h2>
+            <p>
+                Your media analysis result will appear here.
+            </p>
+        </div>
+        <div class="result-box">
+            <!-- BEFORE ANALYSIS -->
+            <div class="result-empty" id="resultEmpty">
+                <div class="result-empty-icon">
+                    ◉
+                </div>
+                <h3>
+                    No Analysis Yet
+                </h3>
+                <p>
+                    Upload an image or video above and click "Analyze Media".
+                </p>
+            </div>
+            <!-- LOADING -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <h3>
+                    Analyzing Media...
+                </h3>
+                <p style="color:#a8b6d2;">
+                    Please wait while the system processes your file.
+                </p>
+            </div>
+            <!-- RESULT -->
+            <div class="result-content" id="resultContent">
+                <!-- MEDIA PREVIEW -->
+                <div class="preview" id="preview">
+                </div>
+                <!-- RESULT INFORMATION -->
+                <div>
+                    <div class="result-label">
+                        Prediction
+                    </div>
+                    <div class="prediction" id="prediction">
+                        REAL
+                    </div>
+                    <div class="confidence-title">
+                        <span>
+                            Confidence
+                        </span>
+                        <strong id="confidenceText">
+                            92.75%
+                        </strong>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="confidenceBar">
+                        </div>
+                    </div>
+                    <p class="result-message" id="resultMessage">
+                        The model classified this media as likely real.
+                    </p>
+                    <button class="btn btn-secondary" id="newAnalysis">
+                        Analyze Another File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =========================
+     FOOTER
+========================= -->
+
+<footer>
+    <div class="container">
+        <strong>
+            DeepShield AI
+        </strong>
+        <p>
+            Deepfake Detection & Media Authentication System
+        </p>
+    </div>
+</footer>
+
+<!-- =========================
+     JAVASCRIPT
+========================= -->
+<script>
+
+    const mediaInput =
+        document.getElementById("mediaInput");
+    const fileName =
+        document.getElementById("fileName");
+    const analyzeButton =
+        document.getElementById("analyzeButton");
+    const resultEmpty =
+        document.getElementById("resultEmpty");
+    const loading =
+        document.getElementById("loading");
+    const resultContent =
+        document.getElementById("resultContent");
+    const preview =
+        document.getElementById("preview");
+    const prediction =
+        document.getElementById("prediction");
+    const confidenceText =
+        document.getElementById("confidenceText");
+    const confidenceBar =
+        document.getElementById("confidenceBar");
+    const resultMessage =
+        document.getElementById("resultMessage");
+    const newAnalysis =
+        document.getElementById("newAnalysis");
+    let selectedFile = null;
+
+    /* =========================
+       SELECT FILE
+    ========================= */
+	
+    mediaInput.addEventListener("change", function () {
+
+        if (this.files.length > 0) {
+            selectedFile = this.files[0];
+            fileName.textContent =
+                selectedFile.name;
+        }
+    });
+
+    /* =========================
+       SHOW PREVIEW
+    ========================= */
+
+    function showPreview(file) {
+        preview.innerHTML = "";
+        const fileURL =
+            URL.createObjectURL(file);
+        if (file.type.startsWith("image/")) {
+            const image =
+                document.createElement("img");
+            image.src = fileURL;
+            image.alt =
+                "Uploaded image";
+            preview.appendChild(image);
+        }
+        else if (file.type.startsWith("video/")) {
+            const video =
+                document.createElement("video");
+            video.src = fileURL;
+            video.controls = true;
+            preview.appendChild(video);
+        }
+    }
+
+    /* =========================
+       ANALYZE BUTTON
+    ========================= */
+
+    analyzeButton.addEventListener("click", function () {
+        if (!selectedFile) {
+            alert(
+                "Please select an image or video first."
+            );
+            return;
+        }
+        showPreview(selectedFile);
+        /* Show loading */
+        resultEmpty.style.display =
+            "none";
+        resultContent.style.display =
+            "none";
+        loading.style.display =
+            "block";
+        /* Move to result section */
+        document
+            .getElementById("result")
+            .scrollIntoView({
+                behavior: "smooth"
+            });
+
+        /*
+        ==========================================
+        BACKEND INTEGRATION
+        ==========================================
+		*/
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        fetch("/predict", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            displayResult(
+                data.label,
+                data.confidence
+            );
+		}).catch(error => {
+			console.error("Error:", error);
+			loading.style.display = "none";
+			alert("There was a problem analyzing the file.");
+		});
+
+    });
+
+    /* =========================
+       DISPLAY RESULT
+    ========================= */
+
+    function displayResult(label, confidence) {
+        loading.style.display =
+            "none";
+        resultContent.style.display =
+            "grid";
+        prediction.textContent =
+            label.toUpperCase();
+        prediction.className =
+            "prediction";
+        if (
+            label.toLowerCase() === "fake"
+        ) {
+            prediction.classList.add("fake");
+            resultMessage.textContent =
+                "The model classified this media as likely fake.";
+        }
+        else {
+            prediction.classList.add("real");
+            resultMessage.textContent =
+                "The model classified this media as likely real.";
+        }
+        confidenceText.textContent =
+            confidence.toFixed(2) + "%";
+        confidenceBar.style.width =
+            confidence + "%";
+    }
+
+    /* =========================
+       NEW ANALYSIS
+    ========================= */
+
+    newAnalysis.addEventListener("click", function () {
+        selectedFile = null;
+        mediaInput.value = "";
+        fileName.textContent =
+            "No file selected";
+        resultContent.style.display =
+            "none";
+        loading.style.display =
+            "none";
+        resultEmpty.style.display =
+            "block";
+        document
+            .getElementById("home")
+            .scrollIntoView({
+                behavior: "smooth"
+            });
+    });
+
+</script>
+
+
+</body>
+</html>
