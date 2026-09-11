@@ -14,18 +14,23 @@ FRAMES_PER_VIDEO = 10
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "model_3_best.keras")
+MODEL_GAN_PATH = os.path.join(BASE_DIR, "models", "model_gan_best.keras")
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
 
 app = Flask(__name__, static_folder=None)
 
-print("Loading model from:", MODEL_PATH)
+print("Loading face-swap model from:", MODEL_PATH)
 model = tf.keras.models.load_model(MODEL_PATH)
+
+print("Loading GAN/diffusion-image model from:", MODEL_GAN_PATH)
+gan_model = tf.keras.models.load_model(MODEL_GAN_PATH)
+
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
-print("Model loaded. Ready to serve predictions.")
+print("Both models loaded. Ready to serve predictions.")
 
 
 # ---------------------------------------------------------------------------
@@ -51,16 +56,49 @@ def predict_image_path(path):
     if img is None:
         raise ValueError("Could not read the uploaded image")
 
+    # --- Face-swap model: uses the face-crop-with-margin pipeline ---
     crop = crop_face(img)
-    crop = cv2.resize(crop, (IMG_SIZE, IMG_SIZE))
-    crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+    faceswap_input = cv2.resize(crop, (IMG_SIZE, IMG_SIZE))
+    faceswap_input_rgb = cv2.cvtColor(faceswap_input, cv2.COLOR_BGR2RGB)
+    faceswap_prob = float(
+        model.predict(
+            np.expand_dims(faceswap_input_rgb.astype("float32"), axis=0),
+            verbose=0,
+        )[0][0]
+    )
 
-    input_tensor = np.expand_dims(crop_rgb.astype("float32"), axis=0)
-    prob_fake = float(model.predict(input_tensor, verbose=0)[0][0])
+    # --- GAN model: uses a plain resize of the whole image (its own training pipeline) ---
+    gan_input = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
+    gan_input_rgb = cv2.cvtColor(gan_input, cv2.COLOR_BGR2RGB)
+    gan_prob = float(
+        gan_model.predict(
+            np.expand_dims(gan_input_rgb.astype("float32"), axis=0),
+            verbose=0,
+        )[0][0]
+    )
 
-    label = "Fake" if prob_fake >= 0.5 else "Real"
-    confidence = prob_fake if label == "Fake" else 1 - prob_fake
-    return label, confidence * 100.0
+    faceswap_flag = faceswap_prob >= 0.5
+    gan_flag = gan_prob >= 0.5
+
+    if faceswap_flag and gan_flag:
+        label = "Fake"
+        confidence = max(faceswap_prob, gan_prob)
+        detail = "Signals of both face-swap manipulation and full AI generation detected."
+    elif faceswap_flag:
+        label = "Fake"
+        confidence = faceswap_prob
+        detail = "Likely a face-swap deepfake."
+    elif gan_flag:
+        label = "Fake"
+        confidence = gan_prob
+        detail = "Likely a fully AI-generated (GAN-style) image."
+    else:
+        label = "Real"
+        # confidence in "real" = how strongly BOTH models agree it's real
+        confidence = 1 - max(faceswap_prob, gan_prob)
+        detail = "No face-swap or full-generation signals detected — likely authentic."
+
+    return label, confidence * 100.0, detail
 
 
 def predict_video_path(path, n_frames=FRAMES_PER_VIDEO):
@@ -96,7 +134,12 @@ def predict_video_path(path, n_frames=FRAMES_PER_VIDEO):
     avg_prob_fake = float(np.mean(frame_probs))
     label = "Fake" if avg_prob_fake >= 0.5 else "Real"
     confidence = avg_prob_fake if label == "Fake" else 1 - avg_prob_fake
-    return label, confidence * 100.0
+    detail = (
+        "Likely a face-swap deepfake (video analysis covers face-swap only)."
+        if label == "Fake"
+        else "No face-swap signals detected across sampled frames — likely authentic."
+    )
+    return label, confidence * 100.0, detail
 
 
 # ---------------------------------------------------------------------------
@@ -127,13 +170,13 @@ def predict():
 
     try:
         if ext in VIDEO_EXTS:
-            label, confidence = predict_video_path(tmp_path)
+            label, confidence, detail = predict_video_path(tmp_path)
         elif ext in IMAGE_EXTS:
-            label, confidence = predict_image_path(tmp_path)
+            label, confidence, detail = predict_image_path(tmp_path)
         else:
             return jsonify({"error": f"Unsupported file type: {ext}"}), 400
 
-        return jsonify({"label": label, "confidence": confidence})
+        return jsonify({"label": label, "confidence": confidence, "detail": detail})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

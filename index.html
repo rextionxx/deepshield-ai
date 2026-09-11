@@ -179,6 +179,15 @@
             font-size: 13px;
             margin-bottom: 20px;
         }
+        .scope-note {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 20px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(88, 166, 255, 0.06);
+            border: 1px solid rgba(88, 166, 255, 0.15);
+        }
         .upload-area {
             min-height: 300px;
             border: 2px dashed #315078;
@@ -454,6 +463,9 @@
             </h2>
             <p class="upload-description">
 				Upload an image or video to analyze its authenticity.
+            </p>
+            <p class="scope-note">
+                ⚠️ Built to detect two specific kinds of fakes: face-swap deepfakes (like Celeb-DF style videos) and fully AI-generated faces (StyleGAN-style images). It's trained on human faces only — results on other subjects or fake types (e.g. audio, animals, diffusion-model images) aren't reliable.
             </p>
             <label class="upload-area" for="mediaInput" id="uploadArea">
                 <div class="upload-icon">
@@ -733,7 +745,8 @@
         .then(data => {
             displayResult(
                 data.label,
-                data.confidence
+                data.confidence,
+                data.detail
             );
 		}).catch(error => {
 			console.error("Error:", error);
@@ -747,7 +760,7 @@
        DISPLAY RESULT
     ========================= */
 
-    function displayResult(label, confidence) {
+    function displayResult(label, confidence, detail) {
         loading.style.display =
             "none";
         resultContent.style.display =
@@ -761,12 +774,12 @@
         ) {
             prediction.classList.add("fake");
             resultMessage.textContent =
-                "The model classified this media as likely fake.";
+                detail || "The model classified this media as likely fake.";
         }
         else {
             prediction.classList.add("real");
             resultMessage.textContent =
-                "The model classified this media as likely real.";
+                detail || "The model classified this media as likely real.";
         }
         confidenceText.textContent =
             confidence.toFixed(2) + "%";
