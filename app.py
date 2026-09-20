@@ -14,7 +14,6 @@ FRAMES_PER_VIDEO = 10
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "model_3_best.keras")
-MODEL_GAN_PATH = os.path.join(BASE_DIR, "models", "model_gan_best.keras")
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
@@ -24,13 +23,10 @@ app = Flask(__name__, static_folder=None)
 print("Loading face-swap model from:", MODEL_PATH)
 model = tf.keras.models.load_model(MODEL_PATH)
 
-print("Loading GAN/diffusion-image model from:", MODEL_GAN_PATH)
-gan_model = tf.keras.models.load_model(MODEL_GAN_PATH)
-
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
-print("Both models loaded. Ready to serve predictions.")
+print("Model loaded. Ready to serve predictions.")
 
 
 # ---------------------------------------------------------------------------
@@ -56,48 +52,23 @@ def predict_image_path(path):
     if img is None:
         raise ValueError("Could not read the uploaded image")
 
-    # --- Face-swap model: uses the face-crop-with-margin pipeline ---
     crop = crop_face(img)
     faceswap_input = cv2.resize(crop, (IMG_SIZE, IMG_SIZE))
     faceswap_input_rgb = cv2.cvtColor(faceswap_input, cv2.COLOR_BGR2RGB)
-    faceswap_prob = float(
+    prob_fake = float(
         model.predict(
             np.expand_dims(faceswap_input_rgb.astype("float32"), axis=0),
             verbose=0,
         )[0][0]
     )
 
-    # --- GAN model: uses a plain resize of the whole image (its own training pipeline) ---
-    gan_input = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-    gan_input_rgb = cv2.cvtColor(gan_input, cv2.COLOR_BGR2RGB)
-    gan_prob = float(
-        gan_model.predict(
-            np.expand_dims(gan_input_rgb.astype("float32"), axis=0),
-            verbose=0,
-        )[0][0]
+    label = "Fake" if prob_fake >= 0.5 else "Real"
+    confidence = prob_fake if label == "Fake" else 1 - prob_fake
+    detail = (
+        "Likely a face-swap deepfake."
+        if label == "Fake"
+        else "No face-swap signals detected — likely authentic."
     )
-
-    faceswap_flag = faceswap_prob >= 0.5
-    gan_flag = gan_prob >= 0.5
-
-    if faceswap_flag and gan_flag:
-        label = "Fake"
-        confidence = max(faceswap_prob, gan_prob)
-        detail = "Signals of both face-swap manipulation and full AI generation detected."
-    elif faceswap_flag:
-        label = "Fake"
-        confidence = faceswap_prob
-        detail = "Likely a face-swap deepfake."
-    elif gan_flag:
-        label = "Fake"
-        confidence = gan_prob
-        detail = "Likely a fully AI-generated (GAN-style) image."
-    else:
-        label = "Real"
-        # confidence in "real" = how strongly BOTH models agree it's real
-        confidence = 1 - max(faceswap_prob, gan_prob)
-        detail = "No face-swap or full-generation signals detected — likely authentic."
-
     return label, confidence * 100.0, detail
 
 
